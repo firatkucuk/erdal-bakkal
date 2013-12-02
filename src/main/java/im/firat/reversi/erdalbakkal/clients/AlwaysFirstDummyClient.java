@@ -5,6 +5,7 @@ package im.firat.reversi.erdalbakkal.clients;
 import im.firat.reversi.domain.Authorization;
 import im.firat.reversi.domain.Game;
 import im.firat.reversi.erdalbakkal.datastore.SingletonGame;
+import im.firat.reversi.erdalbakkal.services.AlwaysFirstServiceImpl;
 import im.firat.reversi.erdalbakkal.services.CalculationService;
 import im.firat.reversi.erdalbakkal.services.RandomCalculationServiceImpl;
 import im.firat.reversi.exceptions.AlreadyStartedException;
@@ -17,21 +18,21 @@ import javax.ws.rs.PathParam;
 
 
 
-public final class RandomDummyClient implements GameClient {
+public final class AlwaysFirstDummyClient implements GameClient {
 
 
 
     //~ --- [INSTANCE FIELDS] ------------------------------------------------------------------------------------------
 
     private final ExecutorService executor;
-    private int                   otherPlayer;
-    private int                   player;
+    private final int             otherPlayer;
+    private final int             player;
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public RandomDummyClient(final int player, final ExecutorService executor) {
+    public AlwaysFirstDummyClient(final int player, final ExecutorService executor) {
 
         this.executor    = executor;
         this.player      = player;
@@ -67,7 +68,7 @@ public final class RandomDummyClient implements GameClient {
 
         Game               game               = SingletonGame.getInstance();
         GameService        gameService        = new GameService();
-        CalculationService calculationService = new RandomCalculationServiceImpl();
+        CalculationService calculationService = new AlwaysFirstServiceImpl();
 
         try {
             gameService.move(game, piece, player);

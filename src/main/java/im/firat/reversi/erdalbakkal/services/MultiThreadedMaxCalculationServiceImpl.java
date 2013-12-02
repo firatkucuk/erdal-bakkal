@@ -11,6 +11,10 @@ import im.firat.reversi.services.GameService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 
@@ -19,20 +23,27 @@ import java.util.concurrent.ConcurrentHashMap;
  * iyi skora sahip yol seçilir. Fakat diğer kullanıcının en kötü hareketleri seçilmez en iyi hareketlerine negatif düşük
  * etki verilerek kullanıcının
  */
-public final class PBMAlternativeCalculationServiceImpl implements CalculationService {
+public final class MultiThreadedMaxCalculationServiceImpl implements CalculationService {
 
 
 
     //~ --- [STATIC FIELDS/INITIALIZERS] -------------------------------------------------------------------------------
 
-    private static final int MAX_DEPTH = 3;
+    private static final int MAX_DEPTH = 4;
+
+
+
+    //~ --- [INSTANCE FIELDS] ------------------------------------------------------------------------------------------
+
+    private AtomicInteger counter;
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public PBMAlternativeCalculationServiceImpl() {
+    public MultiThreadedMaxCalculationServiceImpl() {
 
+        this.counter = new AtomicInteger(0);
     }
 
 
@@ -40,44 +51,51 @@ public final class PBMAlternativeCalculationServiceImpl implements CalculationSe
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
     @Override
-    public String computeNextMove(final Game game, final int player) {
+    public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
 
-        try {
-            ConcurrentHashMap<String, List<Integer>> scoreMap       = new ConcurrentHashMap<String, List<Integer>>();
-            List<String>                             availableMoves = game.getAvailableMoves();
+        counter.set(0);
 
-            for (String availableMove : availableMoves) {
-                GameNode gameNode = new GameNode(game);
+        ConcurrentHashMap<String, List<Integer>> scoreMap       = new ConcurrentHashMap<String, List<Integer>>();
+        List<String>                             availableMoves = game.getAvailableMoves();
+        int                                      moveCount      = availableMoves.size();
 
-                scoreMap.put(availableMove, new ArrayList<Integer>());
-                walk(gameNode, 0, MAX_DEPTH, availableMove, player, scoreMap);
-            }
+        for (String availableMove : availableMoves) {
+            GameNode gameNode = new GameNode(game);
+            Runnable worker   = new Worker(gameNode, availableMove, player, scoreMap);
 
-            String topMove  = "";
-            int    topScore = 0;
-
-            for (String move : scoreMap.keySet()) {
-                List<Integer> moveScores = scoreMap.get(move);
-
-                for (Integer moveScore : moveScores) {
-
-                    if (topMove.isEmpty() || moveScore > topScore) {
-                        topMove  = move;
-                        topScore = moveScore;
-                    }
-                }
-            }
-
-            return topMove;
-        } catch (WrongOrderException e) {
-            e.printStackTrace();
-        } catch (IllegalMoveException e) {
-            e.printStackTrace();
-        } catch (NotStartedException e) {
-            e.printStackTrace();
+            scoreMap.put(availableMove, new ArrayList<Integer>());
+            executor.execute(worker);
         }
 
-        return null;
+        while (counter.intValue() < moveCount) {
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                // ---
+            }
+        }
+
+
+        String topMove  = "";
+        int    topScore = 0;
+
+        // System.out.println(scoreMap);
+        // System.out.println(scoreMap.keySet());
+
+        for (String move : scoreMap.keySet()) {
+            List<Integer> moveScores = scoreMap.get(move);
+
+            for (Integer moveScore : moveScores) {
+
+                if (topMove.isEmpty() || moveScore > topScore) {
+                    topMove  = move;
+                    topScore = moveScore;
+                }
+            }
+        }
+
+        return topMove;
     }
 
 
@@ -116,7 +134,7 @@ public final class PBMAlternativeCalculationServiceImpl implements CalculationSe
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private int computeScore(List<List<Integer>> boardState, int depth, int player) {
+    private int computeScore(List<List<Integer>> boardState, int player) {
 
         int totalScore = 0;
 
@@ -130,17 +148,11 @@ public final class PBMAlternativeCalculationServiceImpl implements CalculationSe
                     int cellScore = 0;
 
                     if (row == 0 || row == 7 || col == 0 || col == 7) {
-
-                        if ((row == 0 && col == 0) || (row == 0 && col == 7) || (row == 7 && col == 0)
-                                || (row == 7 && col == 7)) {
-                            cellScore = 1000;
-                        } else {
-                            cellScore = 14;
-                        }
+                        cellScore = isDiagonal(0, 7) ? 1000 : 14;
                     } else if (row == 1 || row == 6 || col == 1 || col == 6) {
-                        cellScore = 13;
+                        cellScore = isDiagonal(0, 7) ? 31 : 30;
                     } else if (row == 2 || row == 5 || col == 2 || col == 5) {
-                        cellScore = 12;
+                        cellScore = isDiagonal(0, 7) ? 21 : 20;
                     } else if (row == 3 || row == 4 || col == 3 || col == 4) {
                         cellScore = 11;
                     }
@@ -155,6 +167,15 @@ public final class PBMAlternativeCalculationServiceImpl implements CalculationSe
         }         // end for
 
         return totalScore;
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    private boolean isDiagonal(int row, int col) {
+
+        return (row == 0 && col == 0) || (row == 0 && col == 7) || (row == 7 && col == 0) || (row == 7 && col == 7);
     }
 
 
@@ -189,8 +210,8 @@ public final class PBMAlternativeCalculationServiceImpl implements CalculationSe
      * @throws  im.firat.reversi.exceptions.NotStartedException
      */
     private void walk(final GameNode parent, final int depth, final int maxDepth, final String key, final int player,
-            final ConcurrentHashMap<String, List<Integer>> scoreMap) throws WrongOrderException, IllegalMoveException,
-        NotStartedException {
+            final ConcurrentHashMap<String, List<Integer>> scoreMap, final int initialScore) throws WrongOrderException,
+        IllegalMoveException, NotStartedException {
 
         List<String> availableMoves = parent.getAvailableMoves();
         GameService  gameService    = new GameService();
@@ -208,16 +229,67 @@ public final class PBMAlternativeCalculationServiceImpl implements CalculationSe
 
                 gameService.move(gameNode, availableMove, parent.getCurrentPlayer());
 
-                List<Integer> keyScores = scoreMap.get(key);
+                List<Integer> moveScores = scoreMap.get(key);
 
                 if (!gameNode.isStarted()) {
-                    keyScores.add(1000 * computeGameResultFactor(gameNode.getBoardState(), player));
+                    moveScores.add(10000 * computeGameResultFactor(gameNode.getBoardState(), player));
                 } else if (depth < maxDepth) {
-                    walk(gameNode, depth + 1, maxDepth, key, player, scoreMap);
+                    walk(gameNode, depth + 1, maxDepth, key, player, scoreMap, initialScore);
                 } else { // depth reached
-                    keyScores.add(computeScore(gameNode.getBoardState(), depth, player));
+                    moveScores.add(computeScore(gameNode.getBoardState(), player) - initialScore);
+                    //keyScores.add(computeScore(gameNode.getBoardState(), player));
                 }
             }
+        }
+    }
+
+
+
+    //~ --- [INNER CLASSES] --------------------------------------------------------------------------------------------
+
+    private class Worker implements Runnable {
+
+
+
+        //~ --- [INSTANCE FIELDS] --------------------------------------------------------------------------------------
+
+        private final GameNode                                 gameNode;
+        private final int                                      initialScore;
+        private final String                                   move;
+        private final int                                      player;
+        private final ConcurrentHashMap<String, List<Integer>> scoreMap;
+
+
+
+        //~ --- [CONSTRUCTORS] -----------------------------------------------------------------------------------------
+
+        public Worker(GameNode gameNode, String move, int player, ConcurrentHashMap<String, List<Integer>> scoreMap) {
+
+            this.gameNode     = gameNode;
+            this.move         = move;
+            this.player       = player;
+            this.scoreMap     = scoreMap;
+            this.initialScore = computeScore(gameNode.getBoardState(), player);
+        }
+
+
+
+        //~ --- [METHODS] ----------------------------------------------------------------------------------------------
+
+        @Override
+        public void run() {
+
+            try {
+                walk(gameNode, 0, MAX_DEPTH, move, player, scoreMap, initialScore);
+            } catch (WrongOrderException e) {
+                e.printStackTrace();
+            } catch (IllegalMoveException e) {
+                e.printStackTrace();
+            } catch (NotStartedException e) {
+                e.printStackTrace();
+            }
+
+            counter.incrementAndGet();
         }
     }
 }

@@ -10,6 +10,8 @@ import im.firat.reversi.services.GameService;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 
 
@@ -21,6 +23,7 @@ public class PollerTask extends TimerTask {
 
     private final String             authCode;
     private final GameClient         client;
+    private final ExecutorService    executor;
     private final int                player;
     private final CalculationService service;
     private final Timer              timer;
@@ -30,13 +33,14 @@ public class PollerTask extends TimerTask {
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
     public PollerTask(final String authCode, final int player, final GameClient client,
-            final CalculationService service, final Timer timer) {
+            final CalculationService service, final Timer timer, final ExecutorService executor) {
 
         this.authCode = authCode;
         this.player   = player;
         this.client   = client;
         this.service  = service;
         this.timer    = timer;
+        this.executor = executor;
     }
 
 
@@ -50,12 +54,13 @@ public class PollerTask extends TimerTask {
 
         if (game.isCancelled()) {
             timer.cancel();
+            executor.shutdown();
         } else if (!game.isStarted()) {
             timer.cancel();
+            executor.shutdown();
             PrintUtils.printScore(game);
         } else if (game.getCurrentPlayer() == player) {
-            client.move(authCode, service.computeNextMove(game, player));
-            System.out.println(game);
+            client.move(authCode, service.computeNextMove(game, player, executor));
         }
     }
 }

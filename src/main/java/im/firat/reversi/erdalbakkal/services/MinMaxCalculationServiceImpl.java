@@ -11,13 +11,14 @@ import im.firat.reversi.services.GameService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 
 
 /**
  * Bu algoritmada belirli bir derinliğe kadar tüm ağaç taranır ve etkin kullanıcı için en iyi skora sahip yol seçilir.
  */
-public final class PredictBestMoveCalculationServiceImpl implements CalculationService {
+public final class MinMaxCalculationServiceImpl implements CalculationService {
 
 
 
@@ -29,7 +30,7 @@ public final class PredictBestMoveCalculationServiceImpl implements CalculationS
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public PredictBestMoveCalculationServiceImpl() {
+    public MinMaxCalculationServiceImpl() {
 
     }
 
@@ -38,7 +39,7 @@ public final class PredictBestMoveCalculationServiceImpl implements CalculationS
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
     @Override
-    public String computeNextMove(final Game game, final int player) {
+    public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
 
         try {
             ConcurrentHashMap<String, List<Integer>> scoreMap       = new ConcurrentHashMap<String, List<Integer>>();
@@ -114,7 +115,7 @@ public final class PredictBestMoveCalculationServiceImpl implements CalculationS
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private int computeScore(List<List<Integer>> boardState, int depth, int player) {
+    private int computeScore(List<List<Integer>> boardState, int player) {
 
         int totalScore = 0;
 
@@ -128,17 +129,11 @@ public final class PredictBestMoveCalculationServiceImpl implements CalculationS
                     int cellScore = 0;
 
                     if (row == 0 || row == 7 || col == 0 || col == 7) {
-
-                        if ((row == 0 && col == 0) || (row == 0 && col == 7) || (row == 7 && col == 0)
-                                || (row == 7 && col == 7)) {
-                            cellScore = 1000;
-                        } else {
-                            cellScore = 14;
-                        }
+                        cellScore = isDiagonal(0, 7) ? 1000 : 14;
                     } else if (row == 1 || row == 6 || col == 1 || col == 6) {
-                        cellScore = 13;
+                        cellScore = isDiagonal(0, 7) ? 31 : 30;
                     } else if (row == 2 || row == 5 || col == 2 || col == 5) {
-                        cellScore = 12;
+                        cellScore = isDiagonal(0, 7) ? 21 : 20;
                     } else if (row == 3 || row == 4 || col == 3 || col == 4) {
                         cellScore = 11;
                     }
@@ -153,6 +148,15 @@ public final class PredictBestMoveCalculationServiceImpl implements CalculationS
         }         // end for
 
         return totalScore;
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    private boolean isDiagonal(int row, int col) {
+
+        return (row == 0 && col == 0) || (row == 0 && col == 7) || (row == 7 && col == 0) || (row == 7 && col == 7);
     }
 
 
@@ -182,9 +186,9 @@ public final class PredictBestMoveCalculationServiceImpl implements CalculationS
      * @param   key
      * @param   player
      *
-     * @throws  WrongOrderException
-     * @throws  IllegalMoveException
-     * @throws  NotStartedException
+     * @throws  im.firat.reversi.exceptions.WrongOrderException
+     * @throws  im.firat.reversi.exceptions.IllegalMoveException
+     * @throws  im.firat.reversi.exceptions.NotStartedException
      */
     private void walk(final GameNode parent, final int depth, final int maxDepth, final String key, final int player,
             final ConcurrentHashMap<String, List<Integer>> scoreMap) throws WrongOrderException, IllegalMoveException,
@@ -206,14 +210,14 @@ public final class PredictBestMoveCalculationServiceImpl implements CalculationS
 
                 gameService.move(gameNode, availableMove, parent.getCurrentPlayer());
 
-                List<Integer> keyScores = scoreMap.get(key);
+                List<Integer> moveScores = scoreMap.get(key);
 
                 if (!gameNode.isStarted()) {
-                    keyScores.add(1000 * computeGameResultFactor(gameNode.getBoardState(), player));
+                    moveScores.add(10000 * computeGameResultFactor(gameNode.getBoardState(), player));
                 } else if (depth < maxDepth) {
                     walk(gameNode, depth + 1, maxDepth, key, player, scoreMap);
                 } else { // depth reached
-                    keyScores.add(computeScore(gameNode.getBoardState(), depth, player));
+                    moveScores.add(computeScore(gameNode.getBoardState(), player));
                 }
             }
         }

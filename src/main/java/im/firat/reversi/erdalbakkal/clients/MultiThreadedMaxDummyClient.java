@@ -6,7 +6,7 @@ import im.firat.reversi.domain.Authorization;
 import im.firat.reversi.domain.Game;
 import im.firat.reversi.erdalbakkal.datastore.SingletonGame;
 import im.firat.reversi.erdalbakkal.services.CalculationService;
-import im.firat.reversi.erdalbakkal.services.RandomCalculationServiceImpl;
+import im.firat.reversi.erdalbakkal.services.MaxCalculationServiceImpl;
 import im.firat.reversi.exceptions.AlreadyStartedException;
 import im.firat.reversi.exceptions.IllegalMoveException;
 import im.firat.reversi.exceptions.NotStartedException;
@@ -17,7 +17,7 @@ import javax.ws.rs.PathParam;
 
 
 
-public final class RandomDummyClient implements GameClient {
+public final class MultiThreadedMaxDummyClient implements GameClient {
 
 
 
@@ -31,7 +31,7 @@ public final class RandomDummyClient implements GameClient {
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public RandomDummyClient(final int player, final ExecutorService executor) {
+    public MultiThreadedMaxDummyClient(final int player, final ExecutorService executor) {
 
         this.executor    = executor;
         this.player      = player;
@@ -67,7 +67,7 @@ public final class RandomDummyClient implements GameClient {
 
         Game               game               = SingletonGame.getInstance();
         GameService        gameService        = new GameService();
-        CalculationService calculationService = new RandomCalculationServiceImpl();
+        CalculationService calculationService = new MaxCalculationServiceImpl();
 
         try {
             gameService.move(game, piece, player);

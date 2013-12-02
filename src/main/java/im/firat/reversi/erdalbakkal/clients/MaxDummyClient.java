@@ -6,31 +6,34 @@ import im.firat.reversi.domain.Authorization;
 import im.firat.reversi.domain.Game;
 import im.firat.reversi.erdalbakkal.datastore.SingletonGame;
 import im.firat.reversi.erdalbakkal.services.CalculationService;
-import im.firat.reversi.erdalbakkal.services.PredictBestMoveCalculationServiceImpl;
+import im.firat.reversi.erdalbakkal.services.MaxCalculationServiceImpl;
 import im.firat.reversi.exceptions.AlreadyStartedException;
 import im.firat.reversi.exceptions.IllegalMoveException;
 import im.firat.reversi.exceptions.NotStartedException;
 import im.firat.reversi.exceptions.WrongOrderException;
 import im.firat.reversi.services.GameService;
+import java.util.concurrent.ExecutorService;
 import javax.ws.rs.PathParam;
 
 
 
-public final class PredictBestMoveClient implements GameClient {
+public final class MaxDummyClient implements GameClient {
 
 
 
     //~ --- [INSTANCE FIELDS] ------------------------------------------------------------------------------------------
 
-    private int otherPlayer;
-    private int player;
+    private final ExecutorService executor;
+    private int                   otherPlayer;
+    private int                   player;
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public PredictBestMoveClient(int player) {
+    public MaxDummyClient(final int player, final ExecutorService executor) {
 
+        this.executor    = executor;
         this.player      = player;
         this.otherPlayer = player == GameService.BLACK_PLAYER ? GameService.WHITE_PLAYER : GameService.BLACK_PLAYER;
     }
@@ -64,15 +67,21 @@ public final class PredictBestMoveClient implements GameClient {
 
         Game               game               = SingletonGame.getInstance();
         GameService        gameService        = new GameService();
-        CalculationService calculationService = new PredictBestMoveCalculationServiceImpl();
+        CalculationService calculationService = new MaxCalculationServiceImpl();
 
         try {
             gameService.move(game, piece, player);
+            System.out.println("player: " + player);
+            System.out.println("move  : " + piece);
+            System.out.println(game);
 
             if (game.isStarted() && !game.isCancelled()) {
 
                 while (game.getCurrentPlayer() == otherPlayer) {
-                    gameService.move(game, calculationService.computeNextMove(game, otherPlayer), otherPlayer);
+                    String nextMove = calculationService.computeNextMove(game, otherPlayer, executor);
+                    gameService.move(game, nextMove, otherPlayer);
+                    System.out.println("player: " + otherPlayer);
+                    System.out.println("move  : " + nextMove);
                     System.out.println(game);
                 }
             }

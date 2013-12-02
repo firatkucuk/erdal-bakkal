@@ -1,20 +1,19 @@
 
 package im.firat.reversi.erdalbakkal.factories;
 
-
 import im.firat.reversi.erdalbakkal.clients.GameClient;
-import im.firat.reversi.erdalbakkal.clients.RandomDummyClient;
+import im.firat.reversi.erdalbakkal.clients.MaxDummyClient;
 import java.util.concurrent.ExecutorService;
 
 
 
-public class RandomDummyClientFactory {
+public final class MultiThreadedMaxDummyClientFactory {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    private RandomDummyClientFactory() {
+    private MultiThreadedMaxDummyClientFactory() {
 
     }
 
@@ -25,7 +24,7 @@ public class RandomDummyClientFactory {
     public static GameClient createInstance(final String baseAddress, final int player,
             final ExecutorService executor) {
 
-        RandomDummyClient client = new RandomDummyClient(player, executor);
+        MaxDummyClient client = new MaxDummyClient(player, executor);
         client.start();
 
         return client;
