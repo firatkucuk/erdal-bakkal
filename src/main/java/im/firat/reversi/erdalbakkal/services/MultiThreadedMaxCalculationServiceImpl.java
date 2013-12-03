@@ -134,7 +134,7 @@ public final class MultiThreadedMaxCalculationServiceImpl implements Calculation
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private int computeScore(List<List<Integer>> boardState, int player) {
+    private int computeScore(List<List<Integer>> boardState, int me) {
 
         int totalScore = 0;
 
@@ -148,16 +148,16 @@ public final class MultiThreadedMaxCalculationServiceImpl implements Calculation
                     int cellScore = 0;
 
                     if (row == 0 || row == 7 || col == 0 || col == 7) {
-                        cellScore = isDiagonal(0, 7) ? 1000 : 14;
+                        cellScore = isDiagonal(0, 7) ? 1000 : 40;
                     } else if (row == 1 || row == 6 || col == 1 || col == 6) {
-                        cellScore = isDiagonal(0, 7) ? 31 : 30;
+                        cellScore = isDiagonal(1, 6) ? 31 : 30;
                     } else if (row == 2 || row == 5 || col == 2 || col == 5) {
-                        cellScore = isDiagonal(0, 7) ? 21 : 20;
+                        cellScore = isDiagonal(2, 5) ? 21 : 20;
                     } else if (row == 3 || row == 4 || col == 3 || col == 4) {
                         cellScore = 11;
                     }
 
-                    if (player == value) {
+                    if (me == value) {
                         totalScore += cellScore;
                     } else {
                         totalScore -= cellScore;

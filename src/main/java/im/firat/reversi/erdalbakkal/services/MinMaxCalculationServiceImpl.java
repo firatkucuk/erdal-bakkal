@@ -9,8 +9,9 @@ import im.firat.reversi.exceptions.NotStartedException;
 import im.firat.reversi.exceptions.WrongOrderException;
 import im.firat.reversi.services.GameService;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 
 
@@ -24,7 +25,9 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
 
     //~ --- [STATIC FIELDS/INITIALIZERS] -------------------------------------------------------------------------------
 
-    private static final int MAX_DEPTH = 3;
+    private static final int MAX_DEPTH               = 4;
+    private static final int SCORE_MAX_PENALTY       = -10000;
+    private static final int SCORE_RESULT_MULTIPLIER = 10000;
 
 
 
@@ -38,33 +41,69 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
 
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
+    public static double computeMean(List<Integer> values) {
+
+        double sum = 0d;
+
+        for (int value : values) {
+            sum += value;
+        }
+
+        return sum / values.size();
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    public static double computeVariance(List<Integer> values) {
+
+        double mean  = computeMean(values);
+        double total = 0;
+
+        for (int value : values) {
+            total += Math.sqrt(mean - value);
+        }
+
+        return total / values.size();
+    }
+
+
+
+    //~ --- [METHODS] --------------------------------------------------------------------------------------------------
+
     @Override
     public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
 
         try {
-            ConcurrentHashMap<String, List<Integer>> scoreMap       = new ConcurrentHashMap<String, List<Integer>>();
-            List<String>                             availableMoves = game.getAvailableMoves();
+            final List<String>  availableMoves = game.getAvailableMoves();
+            final List<Integer> moveScores     = new ArrayList<Integer>(availableMoves.size());
 
-            for (String availableMove : availableMoves) {
-                GameNode gameNode = new GameNode(game);
-
-                scoreMap.put(availableMove, new ArrayList<Integer>());
-                walk(gameNode, 0, MAX_DEPTH, availableMove, player, scoreMap);
-            }
+            Collections.sort(availableMoves); // for same result all time
 
             String topMove  = "";
-            int    topScore = 0;
+            int    topScore = Integer.MIN_VALUE;
 
-            for (String move : scoreMap.keySet()) {
-                List<Integer> moveScores = scoreMap.get(move);
 
-                for (Integer moveScore : moveScores) {
+            for (String move : availableMoves) {
+                final GameNode gameNode = new GameNode(game);
 
-                    if (topMove.isEmpty() || moveScore > topScore) {
-                        topMove  = move;
-                        topScore = moveScore;
-                    }
+                int moveScore = maxWalk(gameNode, 0, MAX_DEPTH, player);
+                moveScores.add(moveScore);
+                System.out.println(moveScore + " " + move);
+
+                if (moveScore > topScore) {
+                    topMove  = move;
+                    topScore = moveScore;
                 }
+            }
+
+            if (computeVariance(moveScores) == 0d) { // If all move values are same
+
+                final Random random    = new Random();
+                final int    randomInt = random.nextInt(availableMoves.size());
+
+                topMove = availableMoves.get(randomInt);
             }
 
             return topMove;
@@ -83,10 +122,31 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private int computeGameResultFactor(final List<List<Integer>> boardState, final int player) {
+    private int computeCellScore(int row, int col) {
 
-        int playerTotal = 0;
-        int otherTotal  = 0;
+        int cellScore = 0;
+
+        if (row == 0 || row == 7 || col == 0 || col == 7) {
+            cellScore = isDiagonal(0, 7) ? 1000 : 40;
+        } else if (row == 1 || row == 6 || col == 1 || col == 6) {
+            cellScore = isDiagonal(1, 6) ? 31 : 30;
+        } else if (row == 2 || row == 5 || col == 2 || col == 5) {
+            cellScore = isDiagonal(2, 5) ? 21 : 20;
+        } else if (row == 3 || row == 4 || col == 3 || col == 4) {
+            cellScore = 11;
+        }
+
+        return cellScore;
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    private int computeResultFactor(final List<List<Integer>> boardState, final int me) {
+
+        int meTotal    = 0;
+        int otherTotal = 0;
 
         for (int row = 0; row < 8; row++) {
             List<Integer> rowValues = boardState.get(row);
@@ -94,17 +154,17 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
             for (int col = 0; col < 8; col++) {
                 Integer value = rowValues.get(col);
 
-                if (value == player) {
-                    playerTotal++;
+                if (value == me) {
+                    meTotal++;
                 } else if (value != GameService.EMPTY_PLACE) {
                     otherTotal++;
                 }
             }
         }
 
-        if (playerTotal > otherTotal) {
-            return 10;
-        } else if (playerTotal == otherTotal) {
+        if (meTotal > otherTotal) {
+            return 1;
+        } else if (meTotal == otherTotal) {
             return 0;
         }
 
@@ -115,30 +175,24 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private int computeScore(List<List<Integer>> boardState, int player) {
+    private int computeScore(Game game, int me) {
+
+        if (!game.isStarted()) {
+            return SCORE_RESULT_MULTIPLIER * computeResultFactor(game.getBoardState(), me);
+        }
 
         int totalScore = 0;
 
         for (int row = 0; row < 8; row++) {
-            List<Integer> rowValues = boardState.get(row);
+            List<Integer> rowValues = game.getBoardState().get(row);
 
             for (int col = 0; col < 8; col++) {
                 int value = rowValues.get(col);
 
                 if (value != GameService.EMPTY_PLACE) {
-                    int cellScore = 0;
+                    int cellScore = computeCellScore(row, col);
 
-                    if (row == 0 || row == 7 || col == 0 || col == 7) {
-                        cellScore = isDiagonal(0, 7) ? 1000 : 14;
-                    } else if (row == 1 || row == 6 || col == 1 || col == 6) {
-                        cellScore = isDiagonal(0, 7) ? 31 : 30;
-                    } else if (row == 2 || row == 5 || col == 2 || col == 5) {
-                        cellScore = isDiagonal(0, 7) ? 21 : 20;
-                    } else if (row == 3 || row == 4 || col == 3 || col == 4) {
-                        cellScore = 11;
-                    }
-
-                    if (player == value) {
+                    if (me == value) {
                         totalScore += cellScore;
                     } else {
                         totalScore -= cellScore;
@@ -163,63 +217,83 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    /**
-     * <pre>
-     X 4 4 4 4 4 4 X
-     4 3 3 3 3 3 3 4
-     4 3 2 2 2 2 3 4
-     4 3 2 1 1 2 3 4
-     4 3 2 1 1 2 3 4
-     4 3 2 2 2 2 3 4
-     4 3 3 3 3 3 3 4
-     x 4 4 4 4 4 4 X
+    private int maxWalk(final GameNode parent, int depth, final int maxDepth, final int me) throws WrongOrderException,
+        IllegalMoveException, NotStartedException {
 
+        if (++depth < maxDepth) { // if not reached to the depth/leaf, at the same time we increment depth value
 
-     score 50 * (50 - depth) * (regionFactor)
-     yenme: (50 - depth) * 100000
-     yenilgi: (50 - depth) * -10000
-     </pre>
-     *
-     * @param   parent
-     * @param   depth
-     * @param   maxDepth
-     * @param   key
-     * @param   player
-     *
-     * @throws  im.firat.reversi.exceptions.WrongOrderException
-     * @throws  im.firat.reversi.exceptions.IllegalMoveException
-     * @throws  im.firat.reversi.exceptions.NotStartedException
-     */
-    private void walk(final GameNode parent, final int depth, final int maxDepth, final String key, final int player,
-            final ConcurrentHashMap<String, List<Integer>> scoreMap) throws WrongOrderException, IllegalMoveException,
-        NotStartedException {
+            final List<String> availableMoves = parent.getAvailableMoves();
 
-        List<String> availableMoves = parent.getAvailableMoves();
-        GameService  gameService    = new GameService();
+            if (availableMoves != null && !availableMoves.isEmpty()) {
+                Collections.sort(availableMoves); // for same result all time
 
-        //        System.out.println("-------------------------------------");
-        //        System.out.println("depth: " + depth);
-        //        System.out.println(parent);
-        //        System.out.println("available moves: " + availableMoves);
-        //        System.out.println("next move player: " + (parent.getCurrentPlayer() == 1 ? "X" : "O"));
+                final GameService gameService = new GameService();
 
-        if (availableMoves != null && !availableMoves.isEmpty()) {
+                int score = Integer.MIN_VALUE;
 
-            for (String availableMove : availableMoves) {
-                GameNode gameNode = new GameNode(parent);
+                for (String move : availableMoves) {
+                    final GameNode gameNode      = new GameNode(parent);
+                    final int      currentPlayer = parent.getCurrentPlayer();
 
-                gameService.move(gameNode, availableMove, parent.getCurrentPlayer());
+                    gameService.move(gameNode, move, currentPlayer);
 
-                List<Integer> moveScores = scoreMap.get(key);
+                    int moveScore = minWalk(gameNode, depth, maxDepth, me);
 
-                if (!gameNode.isStarted()) {
-                    moveScores.add(10000 * computeGameResultFactor(gameNode.getBoardState(), player));
-                } else if (depth < maxDepth) {
-                    walk(gameNode, depth + 1, maxDepth, key, player, scoreMap);
-                } else { // depth reached
-                    moveScores.add(computeScore(gameNode.getBoardState(), player));
+                    if (moveScore > score) {
+                        score = moveScore;
+                    }
                 }
-            }
-        }
+
+                return score;
+            } // end if
+
+            // if there is no available move
+            return SCORE_MAX_PENALTY;
+        } // end if
+
+        // if reached to depth/leaf
+        return computeScore(parent, me);
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    private int minWalk(final GameNode parent, int depth, final int maxDepth, final int me) throws WrongOrderException,
+        IllegalMoveException, NotStartedException {
+
+        if (++depth < maxDepth) { // if not reached to the depth/leaf, at the same time we increment depth value
+
+            final List<String> availableMoves = parent.getAvailableMoves();
+
+            if (availableMoves != null && !availableMoves.isEmpty()) {
+                Collections.sort(availableMoves); // for same result all time
+
+                final GameService gameService = new GameService();
+
+                int score = Integer.MAX_VALUE;
+
+                for (String move : availableMoves) {
+                    final GameNode gameNode      = new GameNode(parent);
+                    final int      currentPlayer = parent.getCurrentPlayer();
+
+                    gameService.move(gameNode, move, currentPlayer);
+
+                    int moveScore = maxWalk(gameNode, depth, maxDepth, currentPlayer);
+
+                    if (moveScore < score) {
+                        score = moveScore;
+                    }
+                }
+
+                return score;
+            } // end if
+
+            // if there is no available move
+            return SCORE_MAX_PENALTY;
+        } // end if
+
+        // if reached to depth/leaf
+        return computeScore(parent, me);
     }
 }
