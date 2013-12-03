@@ -78,23 +78,24 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
         try {
             final List<String>  availableMoves = game.getAvailableMoves();
             final List<Integer> moveScores     = new ArrayList<Integer>(availableMoves.size());
+            final GameService   gameService    = new GameService();
+            final int           currentPlayer  = game.getCurrentPlayer();
 
             Collections.sort(availableMoves); // for same result all time
 
             String topMove  = "";
             int    topScore = Integer.MIN_VALUE;
 
-
             for (String move : availableMoves) {
                 final GameNode gameNode = new GameNode(game);
+                gameService.move(gameNode, move, currentPlayer);
 
-                int moveScore = maxWalk(gameNode, 0, MAX_DEPTH, player);
+                int moveScore = minWalk(gameNode, 0, MAX_DEPTH, player);
                 moveScores.add(moveScore);
-                System.out.println(moveScore + " " + move);
 
                 if (moveScore > topScore) {
-                    topMove  = move;
                     topScore = moveScore;
+                    topMove  = move;
                 }
             }
 
@@ -116,6 +117,39 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
         }
 
         return null;
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    public int computeScore(Game game, int me) {
+
+        if (!game.isStarted()) {
+            return SCORE_RESULT_MULTIPLIER * computeResultFactor(game.getBoardState(), me);
+        }
+
+        int totalScore = 0;
+
+        for (int row = 0; row < 8; row++) {
+            List<Integer> rowValues = game.getBoardState().get(row);
+
+            for (int col = 0; col < 8; col++) {
+                int value = rowValues.get(col);
+
+                if (value != GameService.EMPTY_PLACE) {
+                    int cellScore = computeCellScore(row, col);
+
+                    if (me == value) {
+                        totalScore += cellScore;
+                    } else {
+                        totalScore -= cellScore;
+                    }
+                } // end if
+            }     // end for
+        }         // end for
+
+        return totalScore;
     }
 
 
@@ -175,39 +209,6 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private int computeScore(Game game, int me) {
-
-        if (!game.isStarted()) {
-            return SCORE_RESULT_MULTIPLIER * computeResultFactor(game.getBoardState(), me);
-        }
-
-        int totalScore = 0;
-
-        for (int row = 0; row < 8; row++) {
-            List<Integer> rowValues = game.getBoardState().get(row);
-
-            for (int col = 0; col < 8; col++) {
-                int value = rowValues.get(col);
-
-                if (value != GameService.EMPTY_PLACE) {
-                    int cellScore = computeCellScore(row, col);
-
-                    if (me == value) {
-                        totalScore += cellScore;
-                    } else {
-                        totalScore -= cellScore;
-                    }
-                } // end if
-            }     // end for
-        }         // end for
-
-        return totalScore;
-    }
-
-
-
-    //~ ----------------------------------------------------------------------------------------------------------------
-
     private boolean isDiagonal(int row, int col) {
 
         return (row == 0 && col == 0) || (row == 0 && col == 7) || (row == 7 && col == 0) || (row == 7 && col == 7);
@@ -227,14 +228,13 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
             if (availableMoves != null && !availableMoves.isEmpty()) {
                 Collections.sort(availableMoves); // for same result all time
 
-                final GameService gameService = new GameService();
+                final GameService gameService   = new GameService();
+                final int         currentPlayer = parent.getCurrentPlayer();
 
                 int score = Integer.MIN_VALUE;
 
                 for (String move : availableMoves) {
-                    final GameNode gameNode      = new GameNode(parent);
-                    final int      currentPlayer = parent.getCurrentPlayer();
-
+                    final GameNode gameNode = new GameNode(parent);
                     gameService.move(gameNode, move, currentPlayer);
 
                     int moveScore = minWalk(gameNode, depth, maxDepth, me);
@@ -269,14 +269,13 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
             if (availableMoves != null && !availableMoves.isEmpty()) {
                 Collections.sort(availableMoves); // for same result all time
 
-                final GameService gameService = new GameService();
+                final GameService gameService   = new GameService();
+                final int         currentPlayer = parent.getCurrentPlayer();
 
                 int score = Integer.MAX_VALUE;
 
                 for (String move : availableMoves) {
-                    final GameNode gameNode      = new GameNode(parent);
-                    final int      currentPlayer = parent.getCurrentPlayer();
-
+                    final GameNode gameNode = new GameNode(parent);
                     gameService.move(gameNode, move, currentPlayer);
 
                     int moveScore = maxWalk(gameNode, depth, maxDepth, currentPlayer);
