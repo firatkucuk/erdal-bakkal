@@ -27,7 +27,7 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
     //~ --- [STATIC FIELDS/INITIALIZERS] -------------------------------------------------------------------------------
 
     private static final int     MAX_DEPTH                          = 6;
-    private static final int     SCORE_PENALTY                      = 10000;
+    private static final int     SCORE_PENALTY                      = -10000;
     private static final int     SCORE_RESULT_MULTIPLIER            = 10000;
     private static final boolean SELECT_RANDOM_MOVE_FOR_SAME_SCORES = true;
 
@@ -74,7 +74,6 @@ public final class MinMaxCalculationServiceImpl implements CalculationService {
 
                 // If all move values are same
                 if (SELECT_RANDOM_MOVE_FOR_SAME_SCORES && MathUtils.computeStandardDeviation(moveScores) == 0d) {
-
                     final Random random    = new Random();
                     final int    randomInt = random.nextInt(availableMoves.size());
 

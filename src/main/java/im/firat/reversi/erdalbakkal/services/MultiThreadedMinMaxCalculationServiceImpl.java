@@ -28,8 +28,8 @@ public final class MultiThreadedMinMaxCalculationServiceImpl implements Calculat
 
     //~ --- [STATIC FIELDS/INITIALIZERS] -------------------------------------------------------------------------------
 
-    private static final int     MAX_DEPTH                          = 7;
-    private static final int     SCORE_PENALTY                      = 10000;
+    private static final int     MAX_DEPTH                          = 6;
+    private static final int     SCORE_PENALTY                      = -10000;
     private static final int     SCORE_RESULT_MULTIPLIER            = 10000;
     private static final boolean SELECT_RANDOM_MOVE_FOR_SAME_SCORES = true;
 
@@ -78,8 +78,7 @@ public final class MultiThreadedMinMaxCalculationServiceImpl implements Calculat
             String topMove  = "";
             int    topScore = Integer.MIN_VALUE;
 
-            for (String move : scoreMap.keySet()) {
-
+            for (final String move : scoreMap.keySet()) {
                 final int moveScore = scoreMap.get(move);
 
                 if (moveScore > topScore) {
@@ -90,7 +89,6 @@ public final class MultiThreadedMinMaxCalculationServiceImpl implements Calculat
 
             // If all move values are same
             if (SELECT_RANDOM_MOVE_FOR_SAME_SCORES && MathUtils.computeStandardDeviation(moveScores) == 0d) {
-
                 final Random random    = new Random();
                 final int    randomInt = random.nextInt(availableMoves.size());
 
