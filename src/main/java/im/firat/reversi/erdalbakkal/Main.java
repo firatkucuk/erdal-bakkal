@@ -45,8 +45,8 @@ public final class Main {
 
         // ---
         // client = RemoteClientFactory.createInstance(baseAddress, player);
-        // client = RandomDummyClientFactory.createInstance(baseAddress, player, executor);
-        client = AlwaysFirstDummyClientFactory.createInstance(baseAddress, player, executor);
+        client = RandomDummyClientFactory.createInstance(baseAddress, player, executor);
+        // client = AlwaysFirstDummyClientFactory.createInstance(baseAddress, player, executor);
         // client = MaxDummyClientFactory.createInstance(baseAddress, player, executor);
 
         // ---

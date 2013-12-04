@@ -57,7 +57,11 @@ public class PollerTask extends TimerTask {
             executor.shutdown();
             PrintUtils.printScore(game);
         } else if (game.getCurrentPlayer() == player) {
-            client.move(authCode, service.computeNextMove(game, player, executor));
+            String nextMove = service.computeNextMove(game, player, executor);
+
+            if (nextMove != null) {
+                client.move(authCode, nextMove);
+            }
         }
     }
 }
