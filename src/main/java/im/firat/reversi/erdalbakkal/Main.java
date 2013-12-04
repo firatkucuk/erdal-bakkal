@@ -54,7 +54,8 @@ public final class Main {
         // service = new AlwaysFirstServiceImpl();
         // service = new MaxCalculationServiceImpl();
         // service = new MultiThreadedMaxCalculationServiceImpl();
-        service = new MinMaxCalculationServiceImpl();
+        // service = new MinMaxCalculationServiceImpl();
+        service = new MultiThreadedMinMaxCalculationServiceImpl();
 
         final Timer     timer      = new Timer();
         final TimerTask pollerTask = new PollerTask(authCode, player, client, service, timer, executor);

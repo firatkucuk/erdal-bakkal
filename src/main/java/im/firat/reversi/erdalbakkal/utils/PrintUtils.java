@@ -1,5 +1,5 @@
 
-package im.firat.reversi.erdalbakkal.core;
+package im.firat.reversi.erdalbakkal.utils;
 
 
 import im.firat.reversi.domain.Game;

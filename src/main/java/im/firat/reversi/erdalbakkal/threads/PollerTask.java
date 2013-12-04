@@ -4,8 +4,8 @@ package im.firat.reversi.erdalbakkal.threads;
 
 import im.firat.reversi.domain.Game;
 import im.firat.reversi.erdalbakkal.clients.GameClient;
-import im.firat.reversi.erdalbakkal.core.PrintUtils;
 import im.firat.reversi.erdalbakkal.services.CalculationService;
+import im.firat.reversi.erdalbakkal.utils.PrintUtils;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
