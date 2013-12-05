@@ -3,11 +3,10 @@ package im.firat.reversi.erdalbakkal;
 
 
 import im.firat.reversi.erdalbakkal.clients.GameClient;
-import im.firat.reversi.erdalbakkal.factories.AlwaysFirstDummyClientFactory;
-import im.firat.reversi.erdalbakkal.factories.MaxDummyClientFactory;
-import im.firat.reversi.erdalbakkal.factories.RandomDummyClientFactory;
-import im.firat.reversi.erdalbakkal.factories.RemoteClientFactory;
-import im.firat.reversi.erdalbakkal.services.*;
+import im.firat.reversi.erdalbakkal.factories.DummyClientFactory;
+import im.firat.reversi.erdalbakkal.services.CalculationService;
+import im.firat.reversi.erdalbakkal.services.MinMaxCalculationServiceImpl;
+import im.firat.reversi.erdalbakkal.services.RandomCalculationServiceImpl;
 import im.firat.reversi.erdalbakkal.threads.PollerTask;
 import im.firat.reversi.services.GameService;
 import java.util.Timer;
@@ -31,31 +30,30 @@ public final class Main {
 
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
 
         // CONFIGURATION SERVICE --------
-        final String baseAddress = "http://10.1.35.99:8080/reversi-stadium/rest/";
-        final String authCode    = "bnaa0745";
-        final int    player      = GameService.BLACK_PLAYER;
+        final String baseAddress = "http://localhost:8080/reversi-stadium/rest/";
+        final String authCode    = "nabr7272";
+        final int    player      = GameService.WHITE_PLAYER;
 
-
-        final ExecutorService executor = Executors.newFixedThreadPool(10);
+        final ExecutorService executor          = Executors.newFixedThreadPool(10);
         GameClient            client;
         CalculationService    service;
+        CalculationService    simulationService;
 
         // ---
-        // client = RemoteClientFactory.createInstance(baseAddress, player);
-        client = RandomDummyClientFactory.createInstance(baseAddress, player, executor);
-        // client = AlwaysFirstDummyClientFactory.createInstance(baseAddress, player, executor);
-        // client = MaxDummyClientFactory.createInstance(baseAddress, player, executor);
-
-        // ---
-        // service = new RandomCalculationServiceImpl();
+        service = new MinMaxCalculationServiceImpl();
         // service = new AlwaysFirstServiceImpl();
         // service = new MaxCalculationServiceImpl();
         // service = new MultiThreadedMaxCalculationServiceImpl();
         // service = new MinMaxCalculationServiceImpl();
-        service = new MultiThreadedMinMaxCalculationServiceImpl();
+        // service = new MultiThreadedMinMaxCalculationServiceImpl();
+
+        // ---
+        simulationService = new RandomCalculationServiceImpl();
+        client            = DummyClientFactory.createInstance(baseAddress, player, executor, simulationService);
+        // client = RemoteClientFactory.createInstance(baseAddress, player);
 
         final Timer     timer      = new Timer();
         final TimerTask pollerTask = new PollerTask(authCode, player, client, service, timer, executor);

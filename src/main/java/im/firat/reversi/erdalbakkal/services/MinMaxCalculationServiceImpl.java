@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
 
 
 /**
- * Bu algoritmada belirli bir derinliğe kadar tüm ağaç taranır ve etkin kullanıcı için en iyi skora sahip yol seçilir.
+ * General purpose minmax algoritm
  */
 public final class MinMaxCalculationServiceImpl implements CalculationService {
 

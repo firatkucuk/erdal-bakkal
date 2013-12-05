@@ -15,12 +15,11 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 
 /**
- * Bu algoritmada belirli bir derinliğe kadar tüm ağaç taranır ve etkin kullanıcı için en iyi skora sahip yol seçilir.
+ * Multi-threaded minmax algoritm
  */
 public final class MultiThreadedMinMaxCalculationServiceImpl implements CalculationService {
 
