@@ -1,24 +1,21 @@
 
-package im.firat.reversi.erdalbakkal.services;
+package im.firat.reversi.erdalbakkal.algorithms;
 
 
 import im.firat.reversi.domain.Game;
-import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 
 
 
-/**
- * Always first algorithm selects always first available choice. It used for benchmarking.
- */
-public final class AlwaysFirstServiceImpl implements CalculationService {
+public final class RandomMoveAlgorithm implements Algorithm {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public AlwaysFirstServiceImpl() {
+    public RandomMoveAlgorithm() {
 
     }
 
@@ -29,9 +26,11 @@ public final class AlwaysFirstServiceImpl implements CalculationService {
     @Override
     public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
 
-        List<String> availableMoves = game.getAvailableMoves();
-        Collections.sort(availableMoves);
+        final List<String> availableMoves = game.getAvailableMoves();
+        final Random       random         = new Random();
+        final int          randomInt      = random.nextInt(availableMoves.size());
+        final String       nextMove       = availableMoves.get(randomInt);
 
-        return availableMoves.get(0);
+        return nextMove;
     }
 }

@@ -1,5 +1,5 @@
 
-package im.firat.reversi.erdalbakkal.services;
+package im.firat.reversi.erdalbakkal.algorithms;
 
 
 import im.firat.reversi.domain.Game;
@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutorService;
 
 
 
-public interface CalculationService {
+public interface Algorithm {
 
 
 

@@ -2,7 +2,8 @@
 package im.firat.reversi.erdalbakkal.factories;
 
 
-import im.firat.reversi.erdalbakkal.clients.GameClient;
+import im.firat.reversi.erdalbakkal.algorithms.Algorithm;
+import im.firat.reversi.erdalbakkal.core.GameClient;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.cxf.jaxrs.client.JAXRSClientFactory;
@@ -24,11 +25,13 @@ public final class RemoteClientFactory {
 
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
-    public static GameClient createInstance(final String baseAddress, final int player) {
+    public static GameClient createInstance(final String baseAddress, final int player, final Algorithm algorithm) {
 
         List<JacksonJsonProvider> providers = Arrays.asList(new JacksonJsonProvider());
         GameClient                client    = JAXRSClientFactory.create(baseAddress, GameClient.class, providers);
 
         return client;
     }
+
+
 }

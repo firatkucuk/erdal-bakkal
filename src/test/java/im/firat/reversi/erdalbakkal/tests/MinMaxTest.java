@@ -3,8 +3,7 @@ package im.firat.reversi.erdalbakkal.tests;
 
 
 import im.firat.reversi.domain.Game;
-import im.firat.reversi.erdalbakkal.beans.GameNode;
-import im.firat.reversi.erdalbakkal.services.MinMaxCalculationServiceImpl;
+import im.firat.reversi.erdalbakkal.algorithms.MinMaxAlgorithm;
 import im.firat.reversi.exceptions.AlreadyStartedException;
 import im.firat.reversi.exceptions.IllegalMoveException;
 import im.firat.reversi.exceptions.NotStartedException;
@@ -33,9 +32,9 @@ public class MinMaxTest {
     public void computeScoreScenarioTest() {
 
         try {
-            Game                         game          = new Game();
-            GameService                  gameService   = new GameService();
-            MinMaxCalculationServiceImpl minMaxService = new MinMaxCalculationServiceImpl();
+            Game            game          = new Game();
+            GameService     gameService   = new GameService();
+            MinMaxAlgorithm minMaxService = new MinMaxAlgorithm();
 
             gameService.start(game);
 

@@ -1,5 +1,5 @@
 
-package im.firat.reversi.erdalbakkal.clients;
+package im.firat.reversi.erdalbakkal.core;
 
 
 import im.firat.reversi.domain.Authorization;

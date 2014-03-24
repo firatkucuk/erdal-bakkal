@@ -1,0 +1,10 @@
+{
+  "mode"     : "stadiumClient",
+  "settings" : {
+    "baseAddress"    : "http://localhost:8080/reversi-stadium/rest/",
+    "player"         : "black",
+    "authCode"       : "xxxxxxx",
+    "threadPoolSize" : 10,
+    "algorithm"      : "im.firat.reversi.erdalbakkal.RandomCalculationServiceImpl"
+  }  
+}

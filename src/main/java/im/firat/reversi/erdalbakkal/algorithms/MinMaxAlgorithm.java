@@ -1,5 +1,5 @@
 
-package im.firat.reversi.erdalbakkal.services;
+package im.firat.reversi.erdalbakkal.algorithms;
 
 
 import im.firat.reversi.domain.Game;
@@ -13,21 +13,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
 
 
 /**
- * Multi-threaded minmax algoritm
+ * General purpose minmax algoritm
  */
-public final class MultiThreadedMinMaxCalculationServiceImpl implements CalculationService {
+public final class MinMaxAlgorithm implements Algorithm {
 
 
 
     //~ --- [STATIC FIELDS/INITIALIZERS] -------------------------------------------------------------------------------
 
-    private static final int     MAX_DEPTH                          = 6;
+    private static final int     MAX_DEPTH                          = 5;
     private static final int     SCORE_PENALTY                      = -10000;
     private static final int     SCORE_RESULT_MULTIPLIER            = 10000;
     private static final boolean SELECT_RANDOM_MOVE_FOR_SAME_SCORES = true;
@@ -36,7 +35,7 @@ public final class MultiThreadedMinMaxCalculationServiceImpl implements Calculat
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public MultiThreadedMinMaxCalculationServiceImpl() {
+    public MinMaxAlgorithm() {
 
     }
 
@@ -47,55 +46,49 @@ public final class MultiThreadedMinMaxCalculationServiceImpl implements Calculat
     @Override
     public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
 
-        final List<String> availableMoves = game.getAvailableMoves();
+        try {
+            final List<String> availableMoves = game.getAvailableMoves();
 
-        if (availableMoves != null && !availableMoves.isEmpty()) {
-            final int                                availableMoveCount = availableMoves.size();
-            final List<Integer>                      moveScores         = new ArrayList<Integer>(availableMoveCount);
-            final ConcurrentHashMap<String, Integer> scoreMap           = new ConcurrentHashMap<String, Integer>();
+            if (availableMoves != null && !availableMoves.isEmpty()) {
+                final List<Integer> moveScores    = new ArrayList<Integer>(availableMoves.size());
+                final GameService   gameService   = new GameService();
+                final int           currentPlayer = game.getCurrentPlayer();
 
-            Collections.sort(availableMoves); // for same result all time
+                Collections.sort(availableMoves); // for same result all time
 
-            for (final String move : availableMoves) {
-                final GameNode gameNode = new GameNode(game);
-                final Runnable worker   = new Worker(gameNode, move, player, scoreMap);
+                String topMove  = "";
+                int    topScore = Integer.MIN_VALUE;
 
-                executor.execute(worker);
-            }
+                for (final String move : availableMoves) {
+                    final GameNode gameNode = new GameNode(game);
+                    gameService.move(gameNode, move, currentPlayer);
 
-            // Wait for all threads
-            while (scoreMap.size() != availableMoveCount) {
+                    int moveScore = walk(gameNode, 1, MAX_DEPTH, player);
+                    moveScores.add(moveScore);
 
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    // ---
+                    if (moveScore > topScore) {
+                        topScore = moveScore;
+                        topMove  = move;
+                    }
                 }
-            }
 
-            // Selecting best move
-            String topMove  = "";
-            int    topScore = Integer.MIN_VALUE;
+                // If all move values are same
+                if (SELECT_RANDOM_MOVE_FOR_SAME_SCORES && MathUtils.computeStandardDeviation(moveScores) == 0d) {
+                    final Random random    = new Random();
+                    final int    randomInt = random.nextInt(availableMoves.size());
 
-            for (final String move : scoreMap.keySet()) {
-                final int moveScore = scoreMap.get(move);
-
-                if (moveScore > topScore) {
-                    topScore = moveScore;
-                    topMove  = move;
+                    topMove = availableMoves.get(randomInt);
                 }
-            }
 
-            // If all move values are same
-            if (SELECT_RANDOM_MOVE_FOR_SAME_SCORES && MathUtils.computeStandardDeviation(moveScores) == 0d) {
-                final Random random    = new Random();
-                final int    randomInt = random.nextInt(availableMoves.size());
-
-                topMove = availableMoves.get(randomInt);
-            }
-
-            return topMove;
-        } // end if
+                return topMove;
+            } // end if
+        } catch (WrongOrderException e) {
+            e.printStackTrace();
+        } catch (IllegalMoveException e) {
+            e.printStackTrace();
+        } catch (NotStartedException e) {
+            e.printStackTrace();
+        }
 
         return null;
     }
@@ -237,56 +230,5 @@ public final class MultiThreadedMinMaxCalculationServiceImpl implements Calculat
 
         // if reached to depth/leaf
         return computeScore(parent, me);
-    }
-
-
-
-    //~ --- [INNER CLASSES] --------------------------------------------------------------------------------------------
-
-    private class Worker implements Runnable {
-
-
-
-        //~ --- [INSTANCE FIELDS] --------------------------------------------------------------------------------------
-
-        private final GameNode                           gameNode;
-        private final String                             move;
-        private final int                                player;
-        private final ConcurrentHashMap<String, Integer> scoreMap;
-
-
-
-        //~ --- [CONSTRUCTORS] -----------------------------------------------------------------------------------------
-
-        public Worker(final GameNode gameNode, final String move, final int player,
-                final ConcurrentHashMap<String, Integer> scoreMap) {
-
-            this.gameNode = gameNode;
-            this.move     = move;
-            this.player   = player;
-            this.scoreMap = scoreMap;
-        }
-
-
-
-        //~ --- [METHODS] ----------------------------------------------------------------------------------------------
-
-        @Override
-        public void run() {
-
-            try {
-                final GameService gameService = new GameService();
-                gameService.move(gameNode, move, player);
-
-                int moveScore = walk(gameNode, 1, MAX_DEPTH, player);
-                scoreMap.put(move, moveScore);
-            } catch (WrongOrderException e) {
-                e.printStackTrace();
-            } catch (IllegalMoveException e) {
-                e.printStackTrace();
-            } catch (NotStartedException e) {
-                e.printStackTrace();
-            }
-        }
     }
 }

@@ -1,7 +1,7 @@
 KNOWN ISSUES AND BUGS
 
-- Simulation should be always black player in this version. It must be changed.
 - Twice or more same player move makes the program crash.
 - Alpha - Beta pruning needed
 - More comments for methods
 - Multi-threaded and single-threaded versions compute different scores
+- Logging needed
