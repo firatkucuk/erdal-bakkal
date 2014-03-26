@@ -1,10 +1,10 @@
 {
   "mode"     : "stadiumClient",
   "settings" : {
-    "baseAddress"    : "http://localhost:8080/reversi-stadium/rest/",
+    "baseAddress"    : "http://localhost:8080/reversi-stadium-1.2/rest/",
     "player"         : "black",
-    "authCode"       : "xxxxxxx",
+    "authCode"       : "plkp8965",
     "threadPoolSize" : 10,
-    "algorithm"      : "im.firat.reversi.erdalbakkal.RandomCalculationServiceImpl"
+    "algorithm"      : "im.firat.reversi.erdalbakkal.algorithms.RandomMoveAlgorithm"
   }  
 }

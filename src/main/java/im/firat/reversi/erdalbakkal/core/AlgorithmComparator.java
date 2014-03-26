@@ -5,6 +5,7 @@ package im.firat.reversi.erdalbakkal.core;
 import im.firat.reversi.domain.Game;
 import im.firat.reversi.erdalbakkal.algorithms.Algorithm;
 import im.firat.reversi.erdalbakkal.datastore.SingletonGame;
+import im.firat.reversi.erdalbakkal.exceptions.ConfigurationKeyNotFoundException;
 import im.firat.reversi.exceptions.AlreadyStartedException;
 import im.firat.reversi.exceptions.IllegalMoveException;
 import im.firat.reversi.exceptions.NotStartedException;
@@ -16,30 +17,60 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static im.firat.reversi.erdalbakkal.utils.ConfigUtils.getInt;
+import static im.firat.reversi.erdalbakkal.utils.ConfigUtils.getMap;
+import static im.firat.reversi.erdalbakkal.utils.ConfigUtils.getStr;
 
 
-public final class AlgorithmTester {
+
+public final class AlgorithmComparator {
 
 
 
     //~ --- [INSTANCE FIELDS] ------------------------------------------------------------------------------------------
 
-    private final Algorithm player1Algorithm;
-    private final Algorithm player2Algorithm;
+    private int       iterationCount;
+    private Algorithm player1Algorithm;
+    private Algorithm player2Algorithm;
+    private int       threadPoolSize;
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public AlgorithmTester(final Algorithm player1Algorithm, final Algorithm player2Algorithm) {
+    public AlgorithmComparator(Map<String, Object> settings) {
 
-        this.player1Algorithm = player1Algorithm;
-        this.player2Algorithm = player2Algorithm;
+        try {
+            final Map<String, Object> player1 = getMap(settings, "player1");
+            final Map<String, Object> player2 = getMap(settings, "player2");
+
+            this.player1Algorithm = (Algorithm) Class.forName(getStr(player1, "algorithm")).newInstance();
+            this.player2Algorithm = (Algorithm) Class.forName(getStr(player2, "algorithm")).newInstance();
+            this.iterationCount   = getInt(settings, "iterationCount");
+            this.threadPoolSize   = getInt(settings, "threadPoolSize");
+        } catch (ConfigurationKeyNotFoundException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
     }
 
 
 
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
+
+    public void test() {
+
+        test(iterationCount, threadPoolSize);
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     public void test(final int iterationCount, final int threadPoolSize) {
 

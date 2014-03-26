@@ -1,7 +1,15 @@
 KNOWN ISSUES AND BUGS
 
+<<<<<<< HEAD
 - Twice or more same player move makes the program crash.
 - Alpha - Beta pruning needed
 - More comments for methods
 - Multi-threaded and single-threaded versions compute different scores
 - Logging needed
+=======
+- Simulation should be always black player in this version. It must be changed.
+- Twice or more same player move makes the program crash.
+- Alpha - Beta pruning needed
+- More comments for methods
+- Multi-threaded and single-threaded versions compute different scores
+>>>>>>> 01ddb04a3df132f684e96057762109361929f2d3
