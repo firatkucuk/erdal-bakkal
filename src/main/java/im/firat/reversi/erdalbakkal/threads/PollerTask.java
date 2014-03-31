@@ -30,7 +30,7 @@ public class PollerTask extends TimerTask {
     private String          authCode;
     private GameClient      client;
     private ExecutorService executor;
-    private int             player;
+    private int             me;
     private Timer           timer;
 
 
@@ -44,9 +44,9 @@ public class PollerTask extends TimerTask {
         try {
 
             if (getStrLower(settings, "player").equals("black")) {
-                this.player = GameService.BLACK_PLAYER;
+                this.me = GameService.BLACK_PLAYER;
             } else {
-                this.player = GameService.WHITE_PLAYER;
+                this.me = GameService.WHITE_PLAYER;
             }
 
             this.timer     = timer;
@@ -81,8 +81,8 @@ public class PollerTask extends TimerTask {
             timer.cancel();
             executor.shutdown();
             PrintUtils.printScore(game);
-        } else if (game.getCurrentPlayer() == player) {
-            String nextMove = algorithm.computeNextMove(game, player, executor);
+        } else if (game.getCurrentPlayer() == me) {
+            String nextMove = algorithm.computeNextMove(game, me, executor);
 
             if (nextMove != null) {
                 client.move(authCode, nextMove);

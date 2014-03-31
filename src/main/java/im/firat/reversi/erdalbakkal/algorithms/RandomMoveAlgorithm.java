@@ -24,7 +24,7 @@ public final class RandomMoveAlgorithm implements Algorithm {
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
     @Override
-    public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
+    public String computeNextMove(final Game game, final int me, final ExecutorService executor) {
 
         final List<String> availableMoves = game.getAvailableMoves();
         final Random       random         = new Random();

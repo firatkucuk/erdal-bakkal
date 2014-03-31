@@ -10,7 +10,6 @@ import im.firat.reversi.exceptions.NotStartedException;
 import im.firat.reversi.exceptions.WrongOrderException;
 import im.firat.reversi.services.GameService;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -20,22 +19,38 @@ import java.util.concurrent.ExecutorService;
 /**
  * General purpose minmax algoritm
  */
-public final class MinMaxAlgorithm implements Algorithm {
+public final class MinMaxAlgorithm2 implements Algorithm {
 
 
 
     //~ --- [STATIC FIELDS/INITIALIZERS] -------------------------------------------------------------------------------
 
-    private static final int     MAX_DEPTH                          = 5;
+    private static final int     MAX_DEPTH                          = 4; // should be even
     private static final int     SCORE_PENALTY                      = -10000;
     private static final int     SCORE_RESULT_MULTIPLIER            = 10000;
     private static final boolean SELECT_RANDOM_MOVE_FOR_SAME_SCORES = true;
+    private static final int[][] SCORE_MATRIX                       = {
+        { 1000, 130, 100, 90, 90, 100, 130, 1000 },
+        { 130, 80, 50, 40, 40, 50, 80, 130 },
+        { 100, 50, 20, 10, 10, 20, 50, 100 },
+        { 90, 40, 10, 0, 0, 10, 40, 90 },
+        { 90, 40, 10, 0, 0, 10, 40, 90 },
+        { 100, 50, 20, 10, 10, 20, 50, 100 },
+        { 130, 80, 50, 40, 40, 50, 80, 130 },
+        { 1000, 130, 100, 90, 90, 100, 130, 1000 },
+    };
+
+
+
+    //~ --- [INSTANCE FIELDS] ------------------------------------------------------------------------------------------
+
+    private final GameService gameService = new GameService();
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public MinMaxAlgorithm() {
+    public MinMaxAlgorithm2() {
 
     }
 
@@ -50,11 +65,10 @@ public final class MinMaxAlgorithm implements Algorithm {
             final List<String> availableMoves = game.getAvailableMoves();
 
             if (availableMoves != null && !availableMoves.isEmpty()) {
-                final List<Integer> moveScores    = new ArrayList<Integer>(availableMoves.size());
-                final GameService   gameService   = new GameService();
+                final List<Integer> stdDevScores  = new ArrayList<Integer>(availableMoves.size()); // for standard dev.
                 final int           currentPlayer = game.getCurrentPlayer();
 
-                Collections.sort(availableMoves); // for same result all time
+                // Collections.sort(availableMoves); // for same result all time, only debug purposes
 
                 String topMove  = "";
                 int    topScore = Integer.MIN_VALUE;
@@ -64,7 +78,11 @@ public final class MinMaxAlgorithm implements Algorithm {
                     gameService.move(gameNode, move, currentPlayer);
 
                     int moveScore = walk(gameNode, 1, MAX_DEPTH, me);
-                    moveScores.add(moveScore);
+
+                    //                    System.out.println("depth: " + 1);
+                    //                    System.out.println("[" + moveScore + "]");
+                    //                    System.out.println(gameNode);
+                    stdDevScores.add(moveScore);
 
                     if (moveScore > topScore) {
                         topScore = moveScore;
@@ -72,8 +90,11 @@ public final class MinMaxAlgorithm implements Algorithm {
                     }
                 }
 
+                //                System.out.println("x-x");
+                //                System.out.println(topScore);
+
                 // If all move values are same
-                if (SELECT_RANDOM_MOVE_FOR_SAME_SCORES && MathUtils.computeStandardDeviation(moveScores) == 0d) {
+                if (SELECT_RANDOM_MOVE_FOR_SAME_SCORES && MathUtils.computeStandardDeviation(stdDevScores) == 0d) {
                     final Random random    = new Random();
                     final int    randomInt = random.nextInt(availableMoves.size());
 
@@ -97,7 +118,7 @@ public final class MinMaxAlgorithm implements Algorithm {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    public int computeScore(Game game, int me) {
+    public int computeScore(final Game game, final int me) {
 
         int totalScore = 0;
 
@@ -107,40 +128,15 @@ public final class MinMaxAlgorithm implements Algorithm {
             for (int col = 0; col < 8; col++) {
                 int value = rowValues.get(col);
 
-                if (value != GameService.EMPTY_PLACE) {
-                    int cellScore = computeCellScore(row, col);
-
-                    if (me == value) {
-                        totalScore += cellScore;
-                    } else {
-                        totalScore -= cellScore;
-                    }
-                } // end if
-            }     // end for
-        }         // end for
-
-        return totalScore;
-    }
-
-
-
-    //~ ----------------------------------------------------------------------------------------------------------------
-
-    private int computeCellScore(int row, int col) {
-
-        int cellScore = 0;
-
-        if (row == 0 || row == 7 || col == 0 || col == 7) {
-            cellScore = isDiagonal(0, 7) ? 1000 : 40;
-        } else if (row == 1 || row == 6 || col == 1 || col == 6) {
-            cellScore = isDiagonal(1, 6) ? 31 : 30;
-        } else if (row == 2 || row == 5 || col == 2 || col == 5) {
-            cellScore = isDiagonal(2, 5) ? 21 : 20;
-        } else if (row == 3 || row == 4 || col == 3 || col == 4) {
-            cellScore = 11;
+                if (value == me) {
+                    totalScore += SCORE_MATRIX[row][col];
+                } else if (value != GameService.EMPTY_PLACE) {
+                    totalScore -= SCORE_MATRIX[row][col];
+                }
+            }
         }
 
-        return cellScore;
+        return totalScore;
     }
 
 
@@ -179,40 +175,31 @@ public final class MinMaxAlgorithm implements Algorithm {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private boolean isDiagonal(int row, int col) {
-
-        return (row == 0 && col == 0) || (row == 0 && col == 7) || (row == 7 && col == 0) || (row == 7 && col == 7);
-    }
-
-
-
-    //~ ----------------------------------------------------------------------------------------------------------------
-
     private int walk(final GameNode node, int depth, final int maxDepth, final int me) throws WrongOrderException,
         IllegalMoveException, NotStartedException {
 
-        final int     currentPlayer     = node.getCurrentPlayer();
-        final boolean isCurrentPlayerMe = currentPlayer == me;
-        final int     meMultiplier      = isCurrentPlayerMe ? 1 : -1;
-
         if (!node.isStarted()) {         // if game is finished
             return SCORE_RESULT_MULTIPLIER * computeResultFactor(node.getBoardState(), me);
-        } else if (++depth < maxDepth) { // if not reached to the depth/leaf, at the same time we increment depth value
+        } else if (depth++ < maxDepth) { // if not reached to the depth/leaf, at the same time we increment depth value
 
-            final List<String> availableMoves = node.getAvailableMoves();
+            final int          currentPlayer     = node.getCurrentPlayer();
+            final boolean      isCurrentPlayerMe = currentPlayer == me;
+            final int          meMultiplier      = isCurrentPlayerMe ? 1 : -1;
+            final List<String> availableMoves    = node.getAvailableMoves();
 
             if (availableMoves != null && !availableMoves.isEmpty()) {
-                Collections.sort(availableMoves); // for same result all time
-
-                final GameService gameService = new GameService();
+                // Collections.sort(availableMoves); // for same result all time only debugging purposes
 
                 int score = isCurrentPlayerMe ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
                 for (final String move : availableMoves) {
-                    final GameNode gameNode = new GameNode(node);
-                    gameService.move(gameNode, move, currentPlayer);
+                    final GameNode childNode = new GameNode(node);
+                    gameService.move(childNode, move, currentPlayer);
 
-                    final int moveScore = walk(gameNode, depth, maxDepth, me);
+                    final int moveScore = walk(childNode, depth, maxDepth, me);
+                    //                    System.out.println("depth: " + depth);
+                    //                    System.out.println("[" + moveScore + "]");
+                    //                    System.out.println(childNode);
 
                     if (isCurrentPlayerMe && moveScore > score) {         // MAX
                         score = moveScore;
@@ -225,7 +212,12 @@ public final class MinMaxAlgorithm implements Algorithm {
             } // end if
 
             // if there is no available move
-            return meMultiplier * SCORE_PENALTY;
+            System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx");
+
+            int temp = meMultiplier * SCORE_PENALTY;
+            System.out.println(temp);
+
+            return temp;
         } // end if
 
         // if reached to depth/leaf

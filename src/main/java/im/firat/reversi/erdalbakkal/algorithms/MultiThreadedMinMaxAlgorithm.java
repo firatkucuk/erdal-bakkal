@@ -45,7 +45,7 @@ public final class MultiThreadedMinMaxAlgorithm implements Algorithm {
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
     @Override
-    public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
+    public String computeNextMove(final Game game, final int me, final ExecutorService executor) {
 
         final List<String> availableMoves = game.getAvailableMoves();
 
@@ -58,7 +58,7 @@ public final class MultiThreadedMinMaxAlgorithm implements Algorithm {
 
             for (final String move : availableMoves) {
                 final GameNode gameNode = new GameNode(game);
-                final Runnable worker   = new Worker(gameNode, move, player, scoreMap);
+                final Runnable worker   = new Worker(gameNode, move, me, scoreMap);
 
                 executor.execute(worker);
             }
@@ -195,18 +195,18 @@ public final class MultiThreadedMinMaxAlgorithm implements Algorithm {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private int walk(final GameNode parent, int depth, final int maxDepth, final int me) throws WrongOrderException,
+    private int walk(final GameNode node, int depth, final int maxDepth, final int me) throws WrongOrderException,
         IllegalMoveException, NotStartedException {
 
-        final int     currentPlayer     = parent.getCurrentPlayer();
+        final int     currentPlayer     = node.getCurrentPlayer();
         final boolean isCurrentPlayerMe = currentPlayer == me;
         final int     meMultiplier      = isCurrentPlayerMe ? 1 : -1;
 
-        if (!parent.isStarted()) {       // if game is finished
-            return SCORE_RESULT_MULTIPLIER * computeResultFactor(parent.getBoardState(), me);
+        if (!node.isStarted()) {         // if game is finished
+            return SCORE_RESULT_MULTIPLIER * computeResultFactor(node.getBoardState(), me);
         } else if (++depth < maxDepth) { // if not reached to the depth/leaf, at the same time we increment depth value
 
-            final List<String> availableMoves = parent.getAvailableMoves();
+            final List<String> availableMoves = node.getAvailableMoves();
 
             if (availableMoves != null && !availableMoves.isEmpty()) {
                 Collections.sort(availableMoves); // for same result all time
@@ -216,14 +216,14 @@ public final class MultiThreadedMinMaxAlgorithm implements Algorithm {
                 int score = isCurrentPlayerMe ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
                 for (final String move : availableMoves) {
-                    final GameNode gameNode = new GameNode(parent);
+                    final GameNode gameNode = new GameNode(node);
                     gameService.move(gameNode, move, currentPlayer);
 
                     final int moveScore = walk(gameNode, depth, maxDepth, me);
 
-                    if (isCurrentPlayerMe && moveScore > score) {
+                    if (isCurrentPlayerMe && moveScore > score) {         // MAX
                         score = moveScore;
-                    } else if (!isCurrentPlayerMe && moveScore < score) {
+                    } else if (!isCurrentPlayerMe && moveScore < score) { // MIN
                         score = moveScore;
                     }
                 }
@@ -236,7 +236,7 @@ public final class MultiThreadedMinMaxAlgorithm implements Algorithm {
         } // end if
 
         // if reached to depth/leaf
-        return computeScore(parent, me);
+        return computeScore(node, me);
     }
 
 

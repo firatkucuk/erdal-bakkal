@@ -1,13 +1,13 @@
 {
   "mode"     : "test",
   "settings" : {
-    "iterationCount" : 10,
+    "iterationCount" : 5,
     "threadPoolSize" : 10,
     "player1": {
-      "algorithm": "im.firat.reversi.erdalbakkal.algorithms.RandomMoveAlgorithm"
+      "algorithm": "im.firat.reversi.erdalbakkal.algorithms.MinMaxAlgorithm2"
     },
     "player2": {
-      "algorithm": "im.firat.reversi.erdalbakkal.algorithms.MultiThreadedMinMaxAlgorithm"
+      "algorithm": "im.firat.reversi.erdalbakkal.algorithms.MinMaxAlgorithm3"
     }
   }
 }

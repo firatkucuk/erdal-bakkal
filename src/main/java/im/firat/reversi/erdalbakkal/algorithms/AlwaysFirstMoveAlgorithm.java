@@ -27,7 +27,7 @@ public final class AlwaysFirstMoveAlgorithm implements Algorithm {
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
     @Override
-    public String computeNextMove(final Game game, final int player, final ExecutorService executor) {
+    public String computeNextMove(final Game game, final int me, final ExecutorService executor) {
 
         List<String> availableMoves = game.getAvailableMoves();
         Collections.sort(availableMoves);

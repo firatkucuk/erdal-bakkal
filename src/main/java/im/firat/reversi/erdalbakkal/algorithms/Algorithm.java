@@ -13,5 +13,5 @@ public interface Algorithm {
 
     //~ --- [METHODS] --------------------------------------------------------------------------------------------------
 
-    public String computeNextMove(final Game game, final int player, final ExecutorService executor);
+    public String computeNextMove(final Game game, final int me, final ExecutorService executor);
 }

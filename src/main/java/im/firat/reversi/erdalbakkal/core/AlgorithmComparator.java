@@ -79,13 +79,13 @@ public final class AlgorithmComparator {
 
         initialize(results, iterationCount, threadPoolSize);
 
-        for (int i = 0; i < iterationCount; i++) {
+        for (int i = 1; i <= iterationCount; i++) {
 
             simulateGame(executor, results);
             computeCounts(results);
 
-            System.out.print("\n-\n");
-        }                            // end for
+            System.out.print("\n</" + i + ">\n");
+        }                                       // end for
 
         showText(results);
         executor.shutdown();
@@ -194,7 +194,7 @@ public final class AlgorithmComparator {
         text.append("Win On White Count: " + (player1WinCount - player1WinOnBlackCount) + "\n");
         text.append("Black Count       : " + player1BlackCount + "\n");
         text.append("White Count       : " + player1WhiteCount + "\n");
-        text.append("Average Time      : " + player1AverageTime + "\n");
+        text.append("Average Time (ms) : " + (player1AverageTime / iterationCount) + "\n");
 
         text.append("\n");
         text.append("### Player 2 #############################################################################\n");
@@ -206,7 +206,7 @@ public final class AlgorithmComparator {
         text.append("Win On White Count: " + (player2WinCount - player2WinOnBlackCount) + "\n");
         text.append("Black Count       : " + player2BlackCount + "\n");
         text.append("White Count       : " + player2WhiteCount + "\n");
-        text.append("Average Time      : " + player2AverageTime + "\n");
+        text.append("Average Time (ms) : " + (player2AverageTime / iterationCount) + "\n");
 
         System.out.println(text.toString());
     }
@@ -217,13 +217,17 @@ public final class AlgorithmComparator {
 
     private void simulateGame(final ExecutorService executor, final Map<String, Integer> results) {
 
-        final GameService gameService  = new GameService();
-        final Game        game         = SingletonGame.getInstance();
-        final int         player1Color = results.get("player1Color");
-        final int         player2Color = results.get("player2Color");
-        final int         totalDepth   = results.get("totalDepth");
+        final GameService gameService        = new GameService();
+        final Game        game               = SingletonGame.getInstance();
+        final int         player1Color       = results.get("player1Color");
+        final int         player2Color       = results.get("player2Color");
+        final int         totalDepth         = results.get("totalDepth");
+        final int         player1AverageTime = results.get("player1AverageTime");
+        final int         player2AverageTime = results.get("player2AverageTime");
 
-        int depth = 0;
+        long player1TotalTime = 0;
+        long player2TotalTime = 0;
+        int  depth            = 0;
 
         try {
 
@@ -232,13 +236,16 @@ public final class AlgorithmComparator {
             while (game.isStarted()) {
 
                 final String nextMove;
+                final long   start = System.currentTimeMillis();
 
                 if (game.getCurrentPlayer() == player1Color) {
                     nextMove = player1Algorithm.computeNextMove(game, player1Color, executor);
                     gameService.move(game, nextMove, player1Color);
+                    player1TotalTime += (System.currentTimeMillis() - start);
                 } else {
                     nextMove = player2Algorithm.computeNextMove(game, player2Color, executor);
                     gameService.move(game, nextMove, player2Color);
+                    player2TotalTime += (System.currentTimeMillis() - start);
                 }
 
                 depth++;
@@ -247,6 +254,8 @@ public final class AlgorithmComparator {
             }
 
             results.put("totalDepth", totalDepth + depth);
+            results.put("player1AverageTime", player1AverageTime + (int) (player1TotalTime / depth));
+            results.put("player2AverageTime", player2AverageTime + (int) (player2TotalTime / depth));
         } catch (AlreadyStartedException e) {
             e.printStackTrace();
         } catch (WrongOrderException e) {

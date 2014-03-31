@@ -139,4 +139,45 @@ public class MinMaxTest {
             e.printStackTrace();
         }
     }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    public void test123() {
+
+        for (int i = 0; i < 8; i++) {
+
+            for (int j = 0; j < 8; j++) {
+
+                double min = Double.MAX_VALUE;
+
+                double corner00 = Math.sqrt(Math.pow((i - 0), 2) + Math.pow((j - 0), 2));
+                double corner07 = Math.sqrt(Math.pow((i - 0), 2) + Math.pow((j - 7), 2));
+                double corner70 = Math.sqrt(Math.pow((i - 7), 2) + Math.pow((j - 0), 2));
+                double corner77 = Math.sqrt(Math.pow((i - 7), 2) + Math.pow((j - 7), 2));
+
+                if (corner00 < min) {
+                    min = corner00;
+                }
+
+                if (corner07 < min) {
+                    min = corner00;
+                }
+
+                if (corner70 < min) {
+                    min = corner00;
+                }
+
+                if (corner77 < min) {
+                    min = corner00;
+                }
+
+                System.out.print(min + " ");
+            } // end for
+
+            System.out.println();
+        } // end for
+    }
 }
